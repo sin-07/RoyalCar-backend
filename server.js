@@ -34,8 +34,24 @@ import carsRoutes from './routes/cars.js';
 import bookingsRoutes from './routes/bookings.js';
 import uploadRoutes from './routes/upload.js';
 
-// Use routes
+// Health check route
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Royal Car Backend API is running!', 
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
 
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Server is healthy',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cars', carsRoutes);
 app.use('/api/bookings', bookingsRoutes);
@@ -48,7 +64,9 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Royal Car Backend API is running on port ${PORT}`);
+  console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 CORS allowed origin: ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
 });
