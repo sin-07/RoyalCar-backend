@@ -109,7 +109,7 @@ router.post('/login', async (req, res) => {
 
     // Create token
     const token = jwt.sign(
-      { id: user._id },
+      { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -134,8 +134,18 @@ router.get('/me', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json(user);
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        emailVerified: user.emailVerified
+      }
+    });
   } catch (err) {
+    console.error('Error in /me route:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
