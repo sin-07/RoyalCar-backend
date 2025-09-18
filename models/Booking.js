@@ -30,6 +30,14 @@ const bookingSchema = new mongoose.Schema({
   },
   paymentId: String,
   orderId: String,
+  pickupLocation: {
+    type: String,
+    required: true,
+  },
+  dropLocation: {
+    type: String,
+    required: true,
+  },
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'cancelled', 'completed'],

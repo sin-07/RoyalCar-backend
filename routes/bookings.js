@@ -30,10 +30,45 @@ try {
 // Import auth middleware
 import { auth } from '../middleware/auth.js';
 
+// Test endpoint
+router.get('/test', (req, res) => {
+  console.log('🧪 Test endpoint hit!');
+  res.json({ message: 'Bookings API is working!' });
+});
+
 // Create booking
 router.post('/', auth, async (req, res) => {
+  console.log('BOOKING REQUEST RECEIVED!');
+  console.log('Request body:', req.body);
+  console.log('User:', req.user);
+  
   try {
     const { car, startDate, endDate, totalAmount, pickupLocation, dropLocation } = req.body;
+
+    // Validate booking times
+    const now = new Date();
+    const pickupDateTime = new Date(startDate);
+    const dropDateTime = new Date(endDate);
+    const diffMs = dropDateTime - pickupDateTime;
+    const diffHours = diffMs / (1000 * 60 * 60);
+    
+    // Add debugging
+    console.log('Server - Current time:', now.toLocaleString());
+    console.log('Server - Pickup time:', pickupDateTime.toLocaleString());
+    console.log('Server - Drop time:', dropDateTime.toLocaleString());
+    console.log('Server - Pickup is before now?', pickupDateTime < now);
+    console.log('Server - Duration in hours:', diffHours);
+    
+    // Check if pickup time is in the past (with 1 hour buffer)
+    const oneHourFromNow = new Date(now.getTime() + (1 * 60 * 60 * 1000));
+    if (pickupDateTime < oneHourFromNow) {
+      return res.status(400).json({ 
+        message: `Pickup time must be at least 1 hour in the future. Current time: ${now.toLocaleString()}, Selected pickup: ${pickupDateTime.toLocaleString()}` 
+      });
+    }
+    if (diffHours < 24) {
+      return res.status(400).json({ message: 'Booking must be at least 24 hours.' });
+    }
 
     console.log('Creating booking:', { car, startDate, endDate, totalAmount, user: req.user._id });
 
@@ -41,9 +76,11 @@ router.post('/', auth, async (req, res) => {
     const booking = new Booking({
       car: car,
       user: req.user._id,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: pickupDateTime,
+      endDate: dropDateTime,
       totalAmount,
+      pickupLocation,
+      dropLocation,
       status: 'confirmed', // Skip payment for now
       paymentStatus: 'completed' // Skip payment for now
     });
@@ -56,9 +93,18 @@ router.post('/', auth, async (req, res) => {
 
     // Generate PDF receipt and send email with better error handling
     try {
-      const filePath = path.join(process.cwd(), 'receipts', `receipt-${booking._id}.pdf`);
-      await generateBookingReceipt({ booking, car: booking.car, user: booking.user, filePath });
+      console.log('--- Starting PDF/Email process ---');
+      console.log('User email:', booking.user.email);
+      console.log('User name:', booking.user.name);
       
+      const filePath = path.join(process.cwd(), 'receipts', `receipt-${booking._id}.pdf`);
+      console.log('PDF file path:', filePath);
+      
+      console.log('Generating PDF receipt...');
+      await generateBookingReceipt({ booking, car: booking.car, user: booking.user, filePath });
+      console.log('PDF generated successfully');
+      
+      console.log('Sending email with attachment...');
       await sendEmailWithAttachment({
         to: booking.user.email,
         subject: 'Your RoyalCar Booking Receipt',
@@ -66,9 +112,10 @@ router.post('/', auth, async (req, res) => {
         attachmentPath: filePath,
       });
       
-      console.log('PDF generated and email sent successfully for booking:', booking._id);
+      console.log('✅ PDF generated and email sent successfully for booking:', booking._id);
     } catch (pdfEmailError) {
-      console.error('PDF/Email error (booking still successful):', pdfEmailError);
+      console.error('❌ PDF/Email error (booking still successful):', pdfEmailError.message);
+      console.error('Full error stack:', pdfEmailError);
       // Don't fail the booking if PDF/email fails
     }
 
@@ -77,7 +124,17 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Booking created successfully',
-      booking
+      booking: {
+        _id: booking._id,
+        car: booking.car,
+        user: booking.user,
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        totalAmount: booking.totalAmount,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus,
+        createdAt: booking.createdAt
+      }
     });
   } catch (error) {
     console.error('Booking creation error:', error);
