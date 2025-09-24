@@ -33,6 +33,7 @@ import authRoutes from './routes/auth.js';
 import carsRoutes from './routes/cars.js';
 import bookingsRoutes from './routes/bookings.js';
 import uploadRoutes from './routes/upload.js';
+import adminRoutes from './routes/admin.js';
 
 // Health check route
 app.get('/', (req, res) => {
@@ -56,6 +57,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cars', carsRoutes);
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

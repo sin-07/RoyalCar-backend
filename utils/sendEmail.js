@@ -6,8 +6,18 @@ export async function sendEmailWithAttachment({ to, subject, text, attachmentPat
     console.log('📧 Email configuration check:');
     console.log('GMAIL_USER:', process.env.GMAIL_USER);
     console.log('GMAIL_PASS:', process.env.GMAIL_PASS ? '***[SET]***' : '❌ NOT SET');
+    console.log('EMAIL_USER:', process.env.EMAIL_USER);
+    console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? '***[SET]***' : '❌ NOT SET');
     console.log('Recipient:', to);
     console.log('Attachment path:', attachmentPath);
+    
+    // Use fallback email credentials
+    const emailUser = process.env.GMAIL_USER || process.env.EMAIL_USER;
+    const emailPass = process.env.GMAIL_PASS || process.env.EMAIL_PASS;
+    
+    if (!emailUser || !emailPass) {
+      throw new Error('Email credentials not configured. Check GMAIL_USER/EMAIL_USER and GMAIL_PASS/EMAIL_PASS environment variables.');
+    }
     
     // Check if attachment file exists
     if (!fs.existsSync(attachmentPath)) {
@@ -18,8 +28,8 @@ export async function sendEmailWithAttachment({ to, subject, text, attachmentPat
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS,
+        user: emailUser,
+        pass: emailPass,
       },
     });
 
@@ -28,7 +38,7 @@ export async function sendEmailWithAttachment({ to, subject, text, attachmentPat
     console.log('✅ Transporter verified successfully');
 
     const mailOptions = {
-      from: process.env.GMAIL_USER,
+      from: emailUser,
       to,
       subject,
       text,
